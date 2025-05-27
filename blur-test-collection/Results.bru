@@ -1,0 +1,15 @@
+meta {
+  name: Results
+  type: http
+  seq: 3
+}
+
+get {
+  url: http://localhost:4567/crawl/{{SEARCH_ID}}
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  SEARCH_ID: ce659c8a
+}

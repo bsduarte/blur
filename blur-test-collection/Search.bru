@@ -1,0 +1,19 @@
+meta {
+  name: Search
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:4567/crawl
+  body: json
+  auth: inherit
+}
+
+headers {
+  content-type: application/json
+}
+
+body:json {
+  {"keyword": "security"}
+}

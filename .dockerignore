@@ -1,0 +1,15 @@
+.git/
+.idea/
+.vscode/
+*.swp
+
+target/
+blur-test-collection/
+*.log
+
+.env*
+.gitignore
+run.sh
+
+Dockerfile*
+README.md
