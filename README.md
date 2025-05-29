@@ -1,4 +1,4 @@
-# Web Crawler Service
+# Simple Web Crawler Service
 
 A concurrent web crawler service that searches for keywords in web pages and their linked pages.
 
