@@ -13,20 +13,20 @@ import java.util.HashMap;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.blur.backend.HttpClientUtil;
-import com.blur.backend.Main;
-import com.blur.backend.Search;
-import com.blur.backend.Status;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 class MainTest extends BaseTest {
     private static final Map<String, String> testPages = new HashMap<>();
     private static final Map<String, String> relativePages = new HashMap<>();
-    private static final Gson gson = new Gson();
+    private static final Gson gson = new GsonBuilder()
+        .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
+        .create();
 
     @BeforeAll
     static void startServer() {
