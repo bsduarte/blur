@@ -5,15 +5,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+
 class JsonTransformerTest {
     private JsonTransformer transformer;
     private JsonTransformerExpose transformerExpose;
     private Search search;
 
-    private static final String TEST_URL = "https://example.com";
+    private static URL TEST_URL = null;
 
     @BeforeEach
     void setUp() {
+        try {
+            TEST_URL = new URI("https://example.com").toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
+            e.printStackTrace();
+        }
         transformer = new JsonTransformer();
         transformerExpose = new JsonTransformerExpose();
         Term term = new Term("test");
@@ -27,7 +37,7 @@ class JsonTransformerTest {
         assertTrue(json.contains("id")); // ID should be included
         assertTrue(json.contains("created")); // Status should be included
         assertTrue(json.contains("test")); // Keyword should be included in regular version
-        assertTrue(json.contains(TEST_URL)); // Base URL should be included in regular version
+        assertTrue(json.contains(TEST_URL.toString())); // Base URL should be included in regular version
     }
 
     @Test

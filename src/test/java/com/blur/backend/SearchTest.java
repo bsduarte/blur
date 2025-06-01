@@ -9,14 +9,24 @@ import static org.junit.jupiter.api.Assertions.*;
 // import java.util.ArrayList;
 // import java.util.List;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+
 class SearchTest {
     private Search search;
     private Term term;
     private static final String TEST_KEYWORD = "test";
-    private static final String TEST_URL = "https://example.com";
+    private static URL TEST_URL = null;
     
     @BeforeEach
     void setUp() {
+        try {
+            TEST_URL = new URI("https://example.com").toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
+            e.printStackTrace();
+        }
         term = new Term(TEST_KEYWORD);
         search = new Search(term, TEST_URL);
     }
@@ -33,7 +43,7 @@ class SearchTest {
     @Test
     void testAddSearchedUrl() {
         search.start();
-        assertTrue(search.getSearchedUrls().contains(TEST_URL));
+        assertTrue(search.getSearchedUrls().contains(TEST_URL.toString()));
     }
 
     @Test

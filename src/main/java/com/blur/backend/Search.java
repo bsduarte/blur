@@ -1,6 +1,10 @@
 package com.blur.backend;
 
 import java.io.Serializable;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,21 +27,22 @@ public class Search implements Serializable {
     @Expose
     private final String id;
     private final Term term;
-    private final String baseUrl;
+    private final URL baseUrl;
     private final Instant createdAt;
     private Status status;
     private final ConcurrentSkipListSet<String> urls;
 
-    private final transient String rootPage;
+    private final transient URL rootPage;
     private final transient ConcurrentSkipListSet<String> searchedUrls;
 
-    public Search(Term term, String baseUrl) {
+    public Search(Term term, URL baseUrl) {
         this.term = term;
         this.baseUrl = baseUrl;
-        rootPage = baseUrl.replaceAll(ROOT_PAGE_REGEX, "$1");
-        if (rootPage == null) {
+        try {
+            rootPage = (new URI(baseUrl.toString().replaceAll(ROOT_PAGE_REGEX, "$1"))).toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
             throw new IllegalStateException("Invalid BASE_URL format.");
-        }        
+        }
         this.id = UUID.randomUUID().toString().substring(0, 8);
         this.urls = new ConcurrentSkipListSet<>();
         this.status = Status.CREATED;
@@ -50,8 +55,9 @@ public class Search implements Serializable {
             throw new IllegalStateException("Search can't be started. Current status is " + this.status + ".");
         }
         this.status = Status.ACTIVE;
-        addSearchedUrl(baseUrl);
-        new Thread(() -> crawl(baseUrl, true)).start();
+        String baseUrlStr = baseUrl.toString();
+        addSearchedUrl(baseUrlStr);
+        new Thread(() -> crawl(baseUrlStr, true)).start();
     }
 
     public Term getTerm() {
@@ -109,23 +115,33 @@ public class Search implements Serializable {
                     return;
                 }
                 
-                String foundUrl;
+                String foundUrlStr;
                 if (foundHref.startsWith("http://") || foundHref.startsWith("https://")) {
-                    foundUrl = foundHref;
+                    foundUrlStr = foundHref;
                 } else {
                     // Handle relative URLs properly
                     if (foundHref.startsWith("/")) {
                         // Absolute path from domain root
-                        foundUrl = rootPage + foundHref;
+                        foundUrlStr = rootPage.toString() + foundHref;
                     } else {
                         // Relative path from current URL
-                        foundUrl = (url.endsWith("/") ? url : url.substring(0, url.lastIndexOf("/") + 1)) + foundHref;
+                        String urlStr = url.toString();
+                        foundUrlStr = (urlStr.endsWith("/") ? urlStr : urlStr.substring(0, urlStr.lastIndexOf("/") + 1)) + foundHref;
                     }
                 }
+                foundUrlStr = foundUrlStr.replaceAll(" ", "%20").replaceAll("\\|", "%7C");
 
                 // Normalize the URL to avoid duplicates
-                String normalizedUrl = (!foundUrl.contains("/./") && !foundUrl.contains("/../")) ? foundUrl : PathUtil.normalizePath(foundUrl);
-                if (normalizedUrl.startsWith(baseUrl) && addSearchedUrl(normalizedUrl)) {
+                final String normalizedUrl;
+                try {
+                    normalizedUrl = (new URI(foundUrlStr)).normalize().toURL().toString();
+                } catch (MalformedURLException | URISyntaxException e) {
+                    // TODO: check remaining cases of melformed ULRs: look for an 'official' way to handle this
+                    logger.error("Malformed URL {} {}: {}. Skipping.", foundUrlStr, e.getMessage());
+                    return;
+                }
+                // String normalizedUrl = (!foundUrl.contains("/./") && !foundUrl.contains("/../")) ? foundUrl : PathUtil.normalizePath(foundUrl);
+                if (normalizedUrl.startsWith(baseUrl.toString()) && addSearchedUrl(normalizedUrl)) {
                     Thread thread = new Thread(() -> {
                         crawl(normalizedUrl, false);
                     });
@@ -148,7 +164,7 @@ public class Search implements Serializable {
         } finally {
             if (isRoot) {
                 setStatus(Status.DONE);
-                logger.info("Crawling completed for search ID: {}[keyword:{}]", getId(), getTerm().getKeyword());
+                logger.info("Crawling completed for search ID: {} [keyword:{}]", getId(), getTerm().getKeyword());
             }
         }
     }    

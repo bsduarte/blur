@@ -61,7 +61,7 @@ public class HttpClientUtil {
         do {
             attempts++;
             try {
-                content = HttpClientUtil.getContent(url);
+                content = HttpClientUtil.getContent(url.toString());
                 fetched = true;
             } catch (Exception e) {
                 try {
@@ -81,7 +81,7 @@ public class HttpClientUtil {
     static String getContent(String url) throws Exception {
         ensureClientInitialized();
         try {
-            ContentResponse response = httpClient.newRequest(url.replaceAll(" ", "%20").replaceAll("\\|", "%7C"))
+            ContentResponse response = httpClient.newRequest(url)
             .timeout(CONNECTION_TIMEOUT + REQUEST_TIMEOUT, TimeUnit.MILLISECONDS)
             .send();
             if (response.getStatus() >= 400) {

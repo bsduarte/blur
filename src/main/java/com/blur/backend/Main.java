@@ -3,6 +3,10 @@ package com.blur.backend;
 import static spark.Spark.*;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.net.URISyntaxException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +22,7 @@ public class Main {
 
     private static final String ROOT_PAGE_REGEX = "^(https?://[a-zA-Z0-9.-]+(?:\\:\\d+)?).*";
 
-    private static String baseUrl;
+    private static URL baseUrl;
     private static String rootPage;
     private static boolean isTestMode = false;
 
@@ -40,13 +44,10 @@ public class Main {
     }
 
     private static void initialize() {
-        baseUrl = System.getProperty("BASE_URL", System.getenv("BASE_URL"));
-        if (baseUrl == null) {
-            throw new IllegalStateException("BASE_URL environment variable is not set.");
-        }
-        rootPage = baseUrl.replaceAll(ROOT_PAGE_REGEX, "$1");
-        if (rootPage == null) {
-            throw new IllegalStateException("Invalid BASE_URL format.");
+        try {
+            baseUrl = new URI(System.getProperty("BASE_URL", System.getenv("BASE_URL"))).toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
+            throw new IllegalStateException("Invalid BASE_URL.");
         }
     }
 
