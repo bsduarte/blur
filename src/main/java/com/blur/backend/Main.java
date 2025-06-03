@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URISyntaxException;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
@@ -37,6 +38,7 @@ public class Main {
             setupShutdownHook();
         } catch (IllegalStateException e) {
             logger.error(e.getMessage());
+            logger.debug(ExceptionUtils.getStackTrace(e), e);
             if (!isTestMode) {
                 System.exit(1);
             }

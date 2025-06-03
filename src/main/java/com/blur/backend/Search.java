@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -159,8 +160,8 @@ public class Search implements Serializable {
                 Thread.currentThread().interrupt(); // Restore the interrupted status
             }            
         } catch (Exception e) {
-            logger.error("Error crawling URL: {}. {}", url, e.getMessage());
-            logger.debug("Error crawling URL: {}", url, e);
+            logger.error("Error crawling URL: {}", url);
+            logger.debug(ExceptionUtils.getStackTrace(e), e);
         } finally {
             if (isRoot) {
                 setStatus(Status.DONE);
