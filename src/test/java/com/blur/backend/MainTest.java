@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.HashMap;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.io.IOException;
@@ -104,7 +103,7 @@ class MainTest extends BaseTest {
         boolean isDone = false;
         for (int i = 0; i < 10 && !isDone; i++) {
             TimeUnit.SECONDS.sleep(1);
-            String statusResponse = HttpClientUtil.fetchContent(TestUtil.serverAddr() + "/crawl/" + search.getId());
+            String statusResponse = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;
@@ -136,7 +135,7 @@ class MainTest extends BaseTest {
         boolean isDone = false;
         for (int i = 0; i < 10 && !isDone; i++) {
             TimeUnit.SECONDS.sleep(1);
-            String statusResponse = HttpClientUtil.fetchContent(TestUtil.serverAddr() + "/crawl/" + search.getId());
+            String statusResponse = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;

@@ -8,6 +8,7 @@ import java.net.URL;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.regex.Matcher;
@@ -37,8 +38,8 @@ public class Search implements Serializable {
     private final transient ConcurrentSkipListSet<String> searchedUrls;
 
     public Search(Term term, URL baseUrl) {
-        this.term = term;
-        this.baseUrl = baseUrl;
+        this.term = Objects.requireNonNull(term);
+        this.baseUrl = Objects.requireNonNull(baseUrl);
         try {
             rootPage = (new URI(baseUrl.toString().replaceAll(ROOT_PAGE_REGEX, "$1"))).toURL();
         } catch (MalformedURLException | URISyntaxException e) {
@@ -56,9 +57,8 @@ public class Search implements Serializable {
             throw new IllegalStateException("Search can't be started. Current status is " + this.status + ".");
         }
         this.status = Status.ACTIVE;
-        String baseUrlStr = baseUrl.toString();
-        addSearchedUrl(baseUrlStr);
-        new Thread(() -> crawl(baseUrlStr, true)).start();
+        addSearchedUrl(baseUrl.toString());
+        new Thread(() -> crawl(baseUrl, true)).start();
     }
 
     public Term getTerm() {
@@ -93,18 +93,19 @@ public class Search implements Serializable {
         this.status = status;
     }
 
-    private void crawl(String url, boolean isRoot) {
+    private void crawl(URL url, boolean isRoot) {
         logger.info("Crawling URL: {}", url);
         try {
             String content = HttpClientUtil.fetchContent(url);
             if (this.term.isContainedAsWholeKeyword(content)) {
-                addUrl(url);
+                addUrl(url.toString());
             }
             List<Thread> threads = new ArrayList<>();
 
             // Loop by URLs in the content
             Matcher urlMatcher = URL_PATTERN.matcher(content);
             urlMatcher.results().forEach(match -> {
+                // TODO: move something from here to PathUtil class
                 String group1 = match.group(1);
                 String foundHref = group1 != null ? group1 : match.group(2); // Handle both quoted and unquoted matches
                 if (foundHref == null || foundHref.trim().isEmpty() 
@@ -130,19 +131,12 @@ public class Search implements Serializable {
                         foundUrlStr = (urlStr.endsWith("/") ? urlStr : urlStr.substring(0, urlStr.lastIndexOf("/") + 1)) + foundHref;
                     }
                 }
-                foundUrlStr = foundUrlStr.replaceAll(" ", "%20").replaceAll("\\|", "%7C");
 
                 // Normalize the URL to avoid duplicates
-                final String normalizedUrl;
-                try {
-                    normalizedUrl = (new URI(foundUrlStr)).normalize().toURL().toString();
-                } catch (MalformedURLException | URISyntaxException e) {
-                    // TODO: check remaining cases of melformed ULRs: look for an 'official' way to handle this
-                    logger.error("Malformed URL {} {}: {}. Skipping.", foundUrlStr, e.getMessage());
-                    return;
-                }
-                // String normalizedUrl = (!foundUrl.contains("/./") && !foundUrl.contains("/../")) ? foundUrl : PathUtil.normalizePath(foundUrl);
-                if (normalizedUrl.startsWith(baseUrl.toString()) && addSearchedUrl(normalizedUrl)) {
+                URL normalizedUrl = PathUtil.getNormalizedUrl(foundUrlStr);
+                String normalizedUrlStr = normalizedUrl.toString();
+                if (normalizedUrlStr.startsWith(baseUrl.toString()) && addSearchedUrl(normalizedUrlStr)) {
+                    logger.debug("Found URL: {} -> Normalized URL: {}", foundHref, normalizedUrlStr);
                     Thread thread = new Thread(() -> {
                         crawl(normalizedUrl, false);
                     });

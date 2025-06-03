@@ -1,5 +1,6 @@
 package com.blur.backend;
 
+import java.net.URL;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -54,7 +55,7 @@ public class HttpClientUtil {
         }
     }
 
-    public static String fetchContent(String url) {
+    public static String fetchContent(URL url) throws Exception {
         String content = null;
         boolean fetched = false;
         Exception lastException = null;

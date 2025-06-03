@@ -4,29 +4,39 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.URL;
+
 class PathUtilTest {
 
     @Test
-    void testNormalizePath() {
-        // Test case for current directory
-        assertEquals("https://example.com/path/file.html", 
-            PathUtil.normalizePath("https://example.com/path/./file.html"));
-        
-        // Test case for parent directory
-        assertEquals("https://example.com/file.html", 
-            PathUtil.normalizePath("https://example.com/path/../file.html"));
-        
-        // Test case for multiple parent directories
-        assertEquals("https://example.com/final.html", 
-            PathUtil.normalizePath("https://example.com/path/to/../../final.html"));
-        
-        // Test case for absolute paths
-        assertEquals("https://example.com/absolute.html", 
-            PathUtil.normalizePath("https://example.com/path/to/../../../../absolute.html"));
-        
-        // Test case for no normalization needed
-        assertEquals("https://example.com/normal/path.html", 
-            PathUtil.normalizePath("https://example.com/normal/path.html"));
+    void testGetNormalizedUrl() throws Exception {
+        // Test normal URL
+        String normalUrl = "http://example.com/path";
+        URL result = PathUtil.getNormalizedUrl(normalUrl);
+        assertEquals(normalUrl, result.toString());
+
+        // Test URL with spaces
+        String urlWithSpaces = "http://example.com/path with spaces";
+        result = PathUtil.getNormalizedUrl(urlWithSpaces);
+        assertEquals("http://example.com/path%20with%20spaces", result.toString());
+
+        // Test URL with pipe character
+        String urlWithPipe = "http://example.com/path|with|pipes";
+        result = PathUtil.getNormalizedUrl(urlWithPipe);
+        assertEquals("http://example.com/path%7Cwith%7Cpipes", result.toString());
+
+        // Test URL with new line character
+        String urlWithNewLine = "https://www.brighttalk.com/webcast/6793/514263\n" + //
+                        "?utm_medium=blog&amp;utm_campaign=7014K000000UV0j";
+        result = PathUtil.getNormalizedUrl(urlWithNewLine);
+        assertEquals("https://www.brighttalk.com/webcast/6793/514263%0A" + //
+                        "?utm_medium=blog&amp;utm_campaign=7014K000000UV0j", result.toString());
+
+        // Test invalid URL
+        String invalidUrl = "not a valid url";
+        assertThrows(RuntimeException.class, () -> {
+            PathUtil.getNormalizedUrl(invalidUrl);
+        });
     }
 
     @Test

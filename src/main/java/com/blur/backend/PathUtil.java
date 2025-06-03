@@ -1,8 +1,18 @@
 package com.blur.backend;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.List;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class PathUtil {
+    private static final Logger logger = LoggerFactory.getLogger(PathUtil.class);
+
     private static final List<String> FILE_EXTENSIONS = List.of(
             ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
             ".zip", ".rar", ".tar", ".gz", ".bz2", ".7z",
@@ -10,46 +20,14 @@ public class PathUtil {
             ".mp3", ".wav", ".mp4", ".avi", ".mov"
     );
 
-
-    public static String normalizePath(String path) {
-        // Split URL into base and path parts
-        String basePart = "";
-        String pathPart = path;
-        
-        if (path.startsWith("http://") || path.startsWith("https://")) {
-            int firstSlash =  path.indexOf('/', path.startsWith("https://") ? 8 : 7);
-            if (firstSlash != -1) {
-                basePart = path.substring(0, firstSlash);
-                pathPart = path.substring(firstSlash);
-            } else {
-                return path; // No path part to normalize
-            }
+    public static URL getNormalizedUrl(String url) {
+        try {
+            return (new URI(url.replaceAll(" ", "%20").replaceAll("\n", "%0A").replaceAll("\\|", "%7C"))).normalize().toURL();
+        } catch (URISyntaxException | MalformedURLException e) {
+            logger.error("Malformed URL: {}", url);
+            logger.debug(ExceptionUtils.getStackTrace(e), e);
+            throw new RuntimeException("Malformed URL: " + url, e);
         }
-
-        String[] parts = pathPart.split("/");
-        StringBuilder cleanedPath = new StringBuilder();
-        for (String part : parts) {
-            if (part.isEmpty() || part.equals(".")) {
-                continue;
-            }
-            else if (!part.equals("..")) {
-                cleanedPath.append("/").append(part);
-            } else {
-                // Remove the last part if ".." is found
-                if (cleanedPath.length() > 0) {
-                    int lastSlashIndex = cleanedPath.lastIndexOf("/");
-                    if (lastSlashIndex != -1) {
-                        cleanedPath.setLength(lastSlashIndex);
-                    }
-                }
-            }
-        }
-
-        // Ensure at least a root slash exists
-        if (cleanedPath.length() == 0) {
-            cleanedPath.append("/");
-        }
-        return basePart + cleanedPath.toString();
     }
 
     public static boolean isFileLink(String url) {
