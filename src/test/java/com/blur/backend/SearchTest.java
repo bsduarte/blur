@@ -125,11 +125,11 @@ class SearchTest {
 
     @Test
     void testKeywordMatchingWithSpecialCharacters() {
-        Term specialTerm = new Term("c++");
+        Term specialTerm = new Term("c/c++");
         Search specialSearch = new Search(specialTerm, TEST_URL);
         
-        assertTrue(specialSearch.getTerm().isContainedAsWholeKeyword("this is c++ code"));
-        assertTrue(specialSearch.getTerm().isContainedAsWholeKeyword("C++"));
+        assertTrue(specialSearch.getTerm().isContainedAsWholeKeyword("this is c/c++ code"));
+        assertTrue(specialSearch.getTerm().isContainedAsWholeKeyword("C/C++"));
         assertFalse(specialSearch.getTerm().isContainedAsWholeKeyword("c+"));
         assertFalse(specialSearch.getTerm().isContainedAsWholeKeyword("c+++"));
     }

@@ -26,6 +26,7 @@ class MainTest extends BaseTest {
     private static final Map<String, String> relativePages = new HashMap<>();
     private static final Gson gson = new GsonBuilder()
         .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
+        .registerTypeAdapter(Term.class, new TermDeserializer())
         .create();
 
     @BeforeAll

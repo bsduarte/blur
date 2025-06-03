@@ -7,6 +7,12 @@ public class Term {
     private transient Pattern pattern;
 
     public Term(String keyword) {
+        if (keyword.length() < 4) {
+            throw new IllegalArgumentException("Keyword must be at least 4 characters long");
+        }
+        if (keyword.length() > 32) {
+            throw new IllegalArgumentException("Keyword must be at most 32 characters long");
+        }        
         this.keyword = keyword;
     }
 
