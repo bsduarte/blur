@@ -1,8 +1,10 @@
 package com.blur.backend;
 
+import java.net.URL;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.util.HttpCookieStore;
@@ -34,7 +36,7 @@ public class HttpClientUtil {
                                 httpClient.stop();
                             } catch (Exception e) {
                                 logger.warn("Error stopping old HTTP client");
-                                logger.debug("Error stopping old HTTP client", e);
+                                logger.debug(ExceptionUtils.getStackTrace(e), e);
                             }
                         }
                         httpClient = new HttpClient(new SslContextFactory.Client());
@@ -45,7 +47,7 @@ public class HttpClientUtil {
                         httpClient.start();
                     } catch (Exception e) {
                         logger.error("Failed to initialize HTTP client");
-                        logger.debug("Failed to initialize HTTP client", e);
+                        logger.debug(ExceptionUtils.getStackTrace(e), e);
                         throw new RuntimeException("Failed to initialize HTTP client", e);
                     }
                 }
@@ -53,17 +55,19 @@ public class HttpClientUtil {
         }
     }
 
-    public static String fetchContent(String url) {
+    public static String fetchContent(URL url) throws Exception {
         String content = null;
         boolean fetched = false;
+        Exception lastException = null;
         int attempts = 0;
         long sleepTimeMs = RETRY_DELAY_MS;
         do {
             attempts++;
             try {
-                content = HttpClientUtil.getContent(url);
+                content = HttpClientUtil.getContent(url.toString());
                 fetched = true;
             } catch (Exception e) {
+                lastException = e;
                 try {
                     Thread.sleep(sleepTimeMs);
                 } catch (InterruptedException e1) {
@@ -75,13 +79,18 @@ public class HttpClientUtil {
                 }
             }
         } while (!fetched && attempts < MAX_RETRIES);
+        if (!fetched) {
+            logger.error("Failed to fetch content from URL: {} after {} attempts", url, attempts);
+            logger.debug(ExceptionUtils.getStackTrace(lastException), lastException);
+            throw lastException;
+        }
         return content;
     }
 
     static String getContent(String url) throws Exception {
         ensureClientInitialized();
         try {
-            ContentResponse response = httpClient.newRequest(url.replaceAll(" ", "%20").replaceAll("\\|", "%7C"))
+            ContentResponse response = httpClient.newRequest(url)
             .timeout(CONNECTION_TIMEOUT + REQUEST_TIMEOUT, TimeUnit.MILLISECONDS)
             .send();
             if (response.getStatus() >= 400) {
@@ -89,12 +98,8 @@ public class HttpClientUtil {
             }
             return response.getContentAsString();
         } catch (RejectedExecutionException e) {
-            logger.error("Request rejected for URL: {}", url);
-            logger.debug("Request rejected for URL: {}", url, e);
-            throw e;
+            throw new RuntimeException("Request rejected for URL: " + url, e);
         } catch (Exception e) {
-            logger.error("Failed to fetch content from URL: {}", url);
-            logger.debug("Failed to fetch content from URL: {}", url, e);
             throw e;
         }
     }
@@ -107,7 +112,7 @@ public class HttpClientUtil {
                 }
             } catch (Exception e) {
                 logger.error("Failed to shutdown HTTP client");
-                logger.debug("Failed to shutdown HTTP client", e);
+                logger.debug(ExceptionUtils.getStackTrace(e), e);
             }
         }
     }

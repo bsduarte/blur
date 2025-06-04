@@ -2,10 +2,6 @@ package com.blur.backend;
 
 import org.junit.jupiter.api.Test;
 
-import com.blur.backend.Search;
-import com.blur.backend.Status;
-import com.blur.backend.Term;
-
 import org.junit.jupiter.api.BeforeEach;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.concurrent.CountDownLatch;
@@ -13,84 +9,56 @@ import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+
 class SearchTest {
     private Search search;
     private Term term;
-    private static final String TEST_ID = "test123";
     private static final String TEST_KEYWORD = "test";
+    private static URL TEST_URL = null;
     
     @BeforeEach
     void setUp() {
+        try {
+            TEST_URL = new URI("https://example.com").toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
+            e.printStackTrace();
+        }
         term = new Term(TEST_KEYWORD);
-        search = new Search(TEST_ID, term);
+        search = new Search(term, TEST_URL);
     }
 
     @Test
     void testSearchInitialization() {
-        assertEquals(TEST_ID, search.getId());
+        assertTrue(search.getId() != null && search.getId().length() > 0);
         assertEquals(TEST_KEYWORD, search.getTerm().getKeyword());
-        assertEquals(Status.ACTIVE, search.getStatus());
-        assertTrue(search.getUrls().isEmpty());
+        assertEquals(Status.CREATED, search.getStatus());
+        assertTrue(search.getResultUrls().isEmpty());
         assertTrue(search.getSearchedUrls().isEmpty());
     }
 
     @Test
-    void testAddUrl() {
-        String testUrl = "https://example.com";
-        search.addUrl(testUrl);
-        assertTrue(search.getUrls().contains(testUrl));
-    }
-
-    @Test
     void testAddSearchedUrl() {
-        String testUrl = "https://example.com";
-        assertTrue(search.addSearchedUrl(testUrl));
-        assertTrue(search.getSearchedUrls().contains(testUrl));
-        // Test duplicate URL
-        assertFalse(search.addSearchedUrl(testUrl));
+        search.start();
+        assertTrue(search.getSearchedUrls().contains(TEST_URL.toString()));
     }
 
     @Test
     void testContainsWholeKeyword() {
-        assertTrue(search.containsWholeKeyword("this is a test message"));
-        assertTrue(search.containsWholeKeyword("TEST"));
-        assertFalse(search.containsWholeKeyword("testing"));
-        assertFalse(search.containsWholeKeyword("contest"));
+        assertTrue(search.getTerm().isContainedAsWholeKeyword("this is a test message"));
+        assertTrue(search.getTerm().isContainedAsWholeKeyword("TEST"));
+        assertFalse(search.getTerm().isContainedAsWholeKeyword("testing"));
+        assertFalse(search.getTerm().isContainedAsWholeKeyword("contest"));
     }
 
     @Test
     void testStatusTransition() {
-        assertEquals(Status.ACTIVE, search.getStatus());
-        search.setStatus(Status.DONE);
-        assertEquals(Status.DONE, search.getStatus());
-    }
-
-    @Test
-    void testConcurrentUrlAddition() throws InterruptedException {
-        int threadCount = 10;
-        CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch doneLatch = new CountDownLatch(threadCount);
-        List<Thread> threads = new ArrayList<>();
-
-        for (int i = 0; i < threadCount; i++) {
-            final int index = i;
-            Thread thread = new Thread(() -> {
-                try {
-                    startLatch.await();
-                    search.addUrl("https://example.com/page" + index);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    doneLatch.countDown();
-                }
-            });
-            threads.add(thread);
-            thread.start();
-        }
-
-        startLatch.countDown();
-        assertTrue(doneLatch.await(5, TimeUnit.SECONDS));
-        assertEquals(threadCount, search.getUrls().size());
+        assertEquals(Status.CREATED, search.getStatus());
+        search.start();
+        assertNotEquals(Status.CREATED, search.getStatus());
     }
 
     @Test
@@ -119,7 +87,7 @@ class SearchTest {
             threads.add(thread);
             thread.start();
         }
-
+    
         startLatch.countDown();
         assertTrue(doneLatch.await(5, TimeUnit.SECONDS));
         assertEquals(threadCount, search.getSearchedUrls().size());
@@ -128,12 +96,12 @@ class SearchTest {
 
     @Test
     void testKeywordMatchingWithSpecialCharacters() {
-        Term specialTerm = new Term("c++");
-        Search specialSearch = new Search("test", specialTerm);
+        Term specialTerm = new Term("c/c++");
+        Search specialSearch = new Search(specialTerm, TEST_URL);
         
-        assertTrue(specialSearch.containsWholeKeyword("this is c++ code"));
-        assertTrue(specialSearch.containsWholeKeyword("C++"));
-        assertFalse(specialSearch.containsWholeKeyword("c+"));
-        assertFalse(specialSearch.containsWholeKeyword("c+++"));
+        assertTrue(specialSearch.getTerm().isContainedAsWholeKeyword("this is c/c++ code"));
+        assertTrue(specialSearch.getTerm().isContainedAsWholeKeyword("C/C++"));
+        assertFalse(specialSearch.getTerm().isContainedAsWholeKeyword("c+"));
+        assertFalse(specialSearch.getTerm().isContainedAsWholeKeyword("c+++"));
     }
 }

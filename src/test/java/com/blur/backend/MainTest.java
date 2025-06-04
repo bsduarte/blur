@@ -13,20 +13,21 @@ import java.util.HashMap;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.blur.backend.HttpClientUtil;
-import com.blur.backend.Main;
-import com.blur.backend.Search;
-import com.blur.backend.Status;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 class MainTest extends BaseTest {
     private static final Map<String, String> testPages = new HashMap<>();
     private static final Map<String, String> relativePages = new HashMap<>();
-    private static final Gson gson = new Gson();
+    private static final Gson gson = new GsonBuilder()
+        .registerTypeAdapter(Instant.class, new InstantTypeAdapter())
+        .registerTypeAdapter(Term.class, new TermDeserializer())
+        .create();
 
     @BeforeAll
     static void startServer() {
@@ -86,11 +87,11 @@ class MainTest extends BaseTest {
     @Test
     void testCompleteCrawl() throws Exception {
         // Create test server with dynamic routing
-        String baseUrl = TestUtil.createTestServer((req, res) -> {
+        String baseUrlStr = TestUtil.createTestServer((req, res) -> {
             res.type("text/html");
             return testPages.get(req.pathInfo());
         });
-        runMain(baseUrl);
+        runMain(baseUrlStr);
         
         // Create new search using HTTP POST
         String searchJson = "{\"keyword\":\"test\"}";
@@ -103,15 +104,15 @@ class MainTest extends BaseTest {
         boolean isDone = false;
         for (int i = 0; i < 10 && !isDone; i++) {
             TimeUnit.SECONDS.sleep(1);
-            String statusResponse = HttpClientUtil.fetchContent(TestUtil.serverAddr() + "/crawl/" + search.getId());
+            String statusResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;
-                ConcurrentSkipListSet<String> urls = completedSearch.getUrls();
-                assertTrue(urls.contains(baseUrl));
-                assertTrue(urls.contains(baseUrl + "page1.html"));
-                assertTrue(urls.contains(baseUrl + "page2.html"));
-                assertTrue(urls.contains(baseUrl + "subdir/page3.html"));
+                ConcurrentSkipListSet<String> urls = completedSearch.getResultUrls();
+                assertTrue(urls.contains(baseUrlStr));
+                assertTrue(urls.contains(baseUrlStr + "page1.html"));
+                assertTrue(urls.contains(baseUrlStr + "page2.html"));
+                assertTrue(urls.contains(baseUrlStr + "subdir/page3.html"));
             }
         }
         assertTrue(isDone, "Search did not complete within timeout");
@@ -119,11 +120,11 @@ class MainTest extends BaseTest {
 
     @Test
     void testPathNormalization() throws Exception {
-        String baseUrl = TestUtil.createTestServer((req, res) -> {
+        String baseUrlStr = TestUtil.createTestServer((req, res) -> {
             res.type("text/html");
             return relativePages.get(req.pathInfo());
         });
-        runMain(baseUrl);
+        runMain(baseUrlStr);
 
         // Create new search
         String searchJson = "{\"keyword\":\"test\"}";
@@ -135,14 +136,14 @@ class MainTest extends BaseTest {
         boolean isDone = false;
         for (int i = 0; i < 10 && !isDone; i++) {
             TimeUnit.SECONDS.sleep(1);
-            String statusResponse = HttpClientUtil.fetchContent(TestUtil.serverAddr() + "/crawl/" + search.getId());
+            String statusResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;
-                ConcurrentSkipListSet<String> urls = completedSearch.getUrls();
-                assertTrue(urls.contains(baseUrl + "page1.html"));
-                assertTrue(urls.contains(baseUrl + "page2.html"));
-                assertTrue(urls.contains(baseUrl + "subdir/page3.html"));
+                ConcurrentSkipListSet<String> urls = completedSearch.getResultUrls();
+                assertTrue(urls.contains(baseUrlStr + "page1.html"));
+                assertTrue(urls.contains(baseUrlStr + "page2.html"));
+                assertTrue(urls.contains(baseUrlStr + "subdir/page3.html"));
             }
         }
         assertTrue(isDone, "Search did not complete within timeout");

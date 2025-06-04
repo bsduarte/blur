@@ -2,20 +2,20 @@ package com.blur.backend;
 
 import org.junit.jupiter.api.Test;
 
-import com.blur.backend.HttpClientUtil;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.net.URL;
+
 class HttpClientUtilTest extends BaseTest {
-    private String testServerUrl;
+    private URL testServerUrl;
     private static final String TEST_CONTENT = "Test content";
     
     @BeforeEach
     void setUp() {
         HttpClientUtil.shutdown(); // Reset client state
-        testServerUrl = TestUtil.createTestServer(TEST_CONTENT);
+        testServerUrl = UrlUtil.getNormalizedUrl(TestUtil.createTestServer(TEST_CONTENT)); 
     }
 
     @AfterEach
@@ -25,9 +25,11 @@ class HttpClientUtilTest extends BaseTest {
 
     @Test
     void testFetchContentSuccess() throws Exception {
-        String content = HttpClientUtil.fetchContent(testServerUrl);
-        assertNotNull(content);
-        assertEquals(TEST_CONTENT, content);
+        assertDoesNotThrow(() -> { 
+            String content = HttpClientUtil.fetchContent(testServerUrl); 
+            assertNotNull(content);
+            assertEquals(TEST_CONTENT, content);            
+        });
     }
 
     @Test
@@ -35,14 +37,6 @@ class HttpClientUtilTest extends BaseTest {
         assertThrows(Exception.class, () -> {
             HttpClientUtil.getContent("http://invalid.url");
         });
-    }
-
-    @Test
-    void testFetchContentWithSpaces() throws Exception {
-        String urlWithSpaces = testServerUrl + "/path with spaces";
-        String content = HttpClientUtil.fetchContent(urlWithSpaces);
-        assertNotNull(content);
-        assertEquals(TEST_CONTENT, content);
     }
 
     @Test
@@ -57,9 +51,11 @@ class HttpClientUtilTest extends BaseTest {
             });
         }
         
-        String content = HttpClientUtil.fetchContent(flakeyServerUrl);
-        assertNotNull(content);
-        assertEquals(TEST_CONTENT, content);
+        assertDoesNotThrow(() -> {
+            String content = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(flakeyServerUrl));
+            assertNotNull(content);
+            assertEquals(TEST_CONTENT, content);
+        });
     }
 
     @Test
@@ -82,7 +78,7 @@ class HttpClientUtilTest extends BaseTest {
             int threadId = i;
             threads[i] = new Thread(() -> {
                 try {
-                    String content = HttpClientUtil.fetchContent(testUrl);
+                    String content = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(testUrl));
                     assertEquals(TEST_CONTENT, content);
                 } catch (Exception e) {
                     exceptions[threadId] = e;
@@ -112,11 +108,11 @@ class HttpClientUtilTest extends BaseTest {
         });
         
         // First request should get cookies but not send any
-        String firstResponse = HttpClientUtil.fetchContent(cookieServerUrl);
+        String firstResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(cookieServerUrl));
         assertEquals("First request", firstResponse);
         
         // Second request should not send cookies (cookie store is empty)
-        String secondResponse = HttpClientUtil.fetchContent(cookieServerUrl);
+        String secondResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(cookieServerUrl));
         assertEquals("First request", secondResponse);
     }
 }
