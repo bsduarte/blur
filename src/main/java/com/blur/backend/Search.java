@@ -58,7 +58,7 @@ public class Search implements Serializable {
         }
         this.status = Status.ACTIVE;
         addSearchedUrl(baseUrl.toString());
-        new Thread(() -> crawl(baseUrl, true)).start();
+        Thread.ofVirtual().start(() -> crawl(baseUrl, true));
     }
 
     public Term getTerm() {
@@ -137,11 +137,7 @@ public class Search implements Serializable {
                 String normalizedUrlStr = normalizedUrl.toString();
                 if (normalizedUrlStr.startsWith(baseUrl.toString()) && addSearchedUrl(normalizedUrlStr)) {
                     logger.debug("Found URL: {} -> Normalized URL: {}", foundHref, normalizedUrlStr);
-                    Thread thread = new Thread(() -> {
-                        crawl(normalizedUrl, false);
-                    });
-                    threads.add(thread);
-                    thread.start();
+                    threads.add(Thread.ofVirtual().start(() -> crawl(normalizedUrl, false)));
                 }
             });
             // Wait for all threads to finish
