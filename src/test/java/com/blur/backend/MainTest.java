@@ -104,7 +104,7 @@ class MainTest extends BaseTest {
         boolean isDone = false;
         for (int i = 0; i < 10 && !isDone; i++) {
             TimeUnit.SECONDS.sleep(1);
-            String statusResponse = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
+            String statusResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;
@@ -136,7 +136,7 @@ class MainTest extends BaseTest {
         boolean isDone = false;
         for (int i = 0; i < 10 && !isDone; i++) {
             TimeUnit.SECONDS.sleep(1);
-            String statusResponse = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
+            String statusResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(TestUtil.serverAddr() + "/crawl/" + search.getId()));
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;

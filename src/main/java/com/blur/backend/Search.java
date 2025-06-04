@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -22,9 +20,9 @@ import com.google.gson.annotations.Expose;
 
 public class Search implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(Search.class);
-
-    private static final Pattern URL_PATTERN = Pattern.compile("<a\\b[^>]*?href\\s*=\\s*(?:[\"']([^\"']*)[\"']|([^\\s>]*))");
+    
     private static final String ROOT_PAGE_REGEX = "^(https?://[a-zA-Z0-9.-]+(?:\\:\\d+)?).*";
+    private static List<String> exclusionPatterns = List.of("#", "javascript:", "mailto:");
 
     @Expose
     private final String id;
@@ -103,43 +101,17 @@ public class Search implements Serializable {
             List<Thread> threads = new ArrayList<>();
 
             // Loop by URLs in the content
-            Matcher urlMatcher = URL_PATTERN.matcher(content);
-            urlMatcher.results().forEach(match -> {
-                // TODO: move something from here to PathUtil class
-                String group1 = match.group(1);
-                String foundHref = group1 != null ? group1 : match.group(2); // Handle both quoted and unquoted matches
-                if (foundHref == null || foundHref.trim().isEmpty() 
-                    || foundHref.contains("#") 
-                    || foundHref.contains("javascript:") 
-                    || foundHref.contains("mailto:")
-                    || PathUtil.isFileLink(foundHref)) {
-                    // Skip empty, fragment, javascript, and mailto links
-                    return;
-                }
-                
-                String foundUrlStr;
-                if (foundHref.startsWith("http://") || foundHref.startsWith("https://")) {
-                    foundUrlStr = foundHref;
-                } else {
-                    // Handle relative URLs properly
-                    if (foundHref.startsWith("/")) {
-                        // Absolute path from domain root
-                        foundUrlStr = rootPage.toString() + foundHref;
-                    } else {
-                        // Relative path from current URL
-                        String urlStr = url.toString();
-                        foundUrlStr = (urlStr.endsWith("/") ? urlStr : urlStr.substring(0, urlStr.lastIndexOf("/") + 1)) + foundHref;
-                    }
-                }
+            UrlUtil.extractLinks(content, exclusionPatterns, true).forEach(link -> {
+                // Getting normalized URLs avoid duplicates
+                URL normalizedUrl = UrlUtil.getNormalizedAbsoluteUrl(rootPage, url, link);
 
-                // Normalize the URL to avoid duplicates
-                URL normalizedUrl = PathUtil.getNormalizedUrl(foundUrlStr);
                 String normalizedUrlStr = normalizedUrl.toString();
                 if (normalizedUrlStr.startsWith(baseUrl.toString()) && addSearchedUrl(normalizedUrlStr)) {
-                    logger.debug("Found URL: {} -> Normalized URL: {}", foundHref, normalizedUrlStr);
+                    logger.debug("Found URL: {} -> Normalized URL: {}", link, normalizedUrlStr);
                     threads.add(Thread.ofVirtual().start(() -> crawl(normalizedUrl, false)));
                 }
             });
+
             // Wait for all threads to finish
             try {
                 for (Thread thread : threads) {

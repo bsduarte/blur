@@ -15,7 +15,7 @@ class HttpClientUtilTest extends BaseTest {
     @BeforeEach
     void setUp() {
         HttpClientUtil.shutdown(); // Reset client state
-        testServerUrl = PathUtil.getNormalizedUrl(TestUtil.createTestServer(TEST_CONTENT)); 
+        testServerUrl = UrlUtil.getNormalizedUrl(TestUtil.createTestServer(TEST_CONTENT)); 
     }
 
     @AfterEach
@@ -52,7 +52,7 @@ class HttpClientUtilTest extends BaseTest {
         }
         
         assertDoesNotThrow(() -> {
-            String content = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(flakeyServerUrl));
+            String content = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(flakeyServerUrl));
             assertNotNull(content);
             assertEquals(TEST_CONTENT, content);
         });
@@ -78,7 +78,7 @@ class HttpClientUtilTest extends BaseTest {
             int threadId = i;
             threads[i] = new Thread(() -> {
                 try {
-                    String content = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(testUrl));
+                    String content = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(testUrl));
                     assertEquals(TEST_CONTENT, content);
                 } catch (Exception e) {
                     exceptions[threadId] = e;
@@ -108,11 +108,11 @@ class HttpClientUtilTest extends BaseTest {
         });
         
         // First request should get cookies but not send any
-        String firstResponse = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(cookieServerUrl));
+        String firstResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(cookieServerUrl));
         assertEquals("First request", firstResponse);
         
         // Second request should not send cookies (cookie store is empty)
-        String secondResponse = HttpClientUtil.fetchContent(PathUtil.getNormalizedUrl(cookieServerUrl));
+        String secondResponse = HttpClientUtil.fetchContent(UrlUtil.getNormalizedUrl(cookieServerUrl));
         assertEquals("First request", secondResponse);
     }
 }
