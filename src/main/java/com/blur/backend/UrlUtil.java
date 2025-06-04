@@ -30,7 +30,6 @@ public class UrlUtil {
                         link -> link != null && !link.isEmpty()
                         && (!excludeFileLinks || !isFileLink(link))
                         && (exclusionPatterns == null || exclusionPatterns.isEmpty() || exclusionPatterns.stream().noneMatch(link::contains)));
-                //group1 != null ? group1 : match.group(2); // Handle both quoted and unquoted matches
     }
 
     public static URL getNormalizedAbsoluteUrl(URL rootPage, URL url, String link) {

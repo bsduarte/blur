@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 public class Search implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(Search.class);
@@ -26,11 +27,14 @@ public class Search implements Serializable {
 
     @Expose
     private final String id;
+
     private final Term term;
     private final URL baseUrl;
     private final Instant createdAt;
     private Status status;
-    private final ConcurrentSkipListSet<String> urls;
+
+    @SerializedName("urls")
+    private final ConcurrentSkipListSet<String> resultUrls;
 
     private final transient URL rootPage;
     private final transient ConcurrentSkipListSet<String> searchedUrls;
@@ -44,9 +48,9 @@ public class Search implements Serializable {
             throw new IllegalStateException("Invalid BASE_URL format.");
         }
         this.id = UUID.randomUUID().toString().substring(0, 8);
-        this.urls = new ConcurrentSkipListSet<>();
         this.status = Status.CREATED;
         this.createdAt = Instant.now();
+        this.resultUrls = new ConcurrentSkipListSet<>();
         this.searchedUrls = new ConcurrentSkipListSet<>();
     }
 
@@ -60,30 +64,30 @@ public class Search implements Serializable {
     }
 
     public Term getTerm() {
-        return term;
+        return this.term;
     }
 
     public String getId() {
-        return id;
-    }
-
-    public ConcurrentSkipListSet<String> getUrls() {
-        return urls;
+        return this.id;
     }
 
     public Status getStatus() {
-        return status;
+        return this.status;
+    }
+
+    public Instant getCreatedAt() {
+        return this.createdAt;
+    }
+
+    public ConcurrentSkipListSet<String> getResultUrls() {
+        return this.resultUrls;
     }
 
     public ConcurrentSkipListSet<String> getSearchedUrls() {
-        return searchedUrls;
+        return this.searchedUrls;
     }
 
-    private void addUrl(String url) {
-        urls.add(url);
-    }
-
-    private synchronized boolean addSearchedUrl(String url) {
+    synchronized boolean addSearchedUrl(String url) {
         return this.searchedUrls.add(url);
     }
 
@@ -96,7 +100,7 @@ public class Search implements Serializable {
         try {
             String content = HttpClientUtil.fetchContent(url);
             if (this.term.isContainedAsWholeKeyword(content)) {
-                addUrl(url.toString());
+                this.resultUrls.add(url.toString());
             }
             List<Thread> threads = new ArrayList<>();
 

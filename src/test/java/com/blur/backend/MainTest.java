@@ -108,7 +108,7 @@ class MainTest extends BaseTest {
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;
-                ConcurrentSkipListSet<String> urls = completedSearch.getUrls();
+                ConcurrentSkipListSet<String> urls = completedSearch.getResultUrls();
                 assertTrue(urls.contains(baseUrlStr));
                 assertTrue(urls.contains(baseUrlStr + "page1.html"));
                 assertTrue(urls.contains(baseUrlStr + "page2.html"));
@@ -140,7 +140,7 @@ class MainTest extends BaseTest {
             Search completedSearch = gson.fromJson(statusResponse, Search.class);
             if (completedSearch.getStatus() == Status.DONE) {
                 isDone = true;
-                ConcurrentSkipListSet<String> urls = completedSearch.getUrls();
+                ConcurrentSkipListSet<String> urls = completedSearch.getResultUrls();
                 assertTrue(urls.contains(baseUrlStr + "page1.html"));
                 assertTrue(urls.contains(baseUrlStr + "page2.html"));
                 assertTrue(urls.contains(baseUrlStr + "subdir/page3.html"));
